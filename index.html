@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自動作曲ジェネレーター</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        select, button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .output-section {
+            margin-top: 25px;
+            padding: 15px;
+            background: #ecf0f1;
+            border-radius: 8px;
+            text-align: left;
+        }
+        .output-title {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .output-content {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>自動作曲ジェネレーター</h1>
+    
+    <div class="controls">
+        <select id="keySelect">
+            <option value="0">C</option>
+            <option value="1">C#</option>
+            <option value="2">D</option>
+            <option value="3">D#</option>
+            <option value="4">E</option>
+            <option value="5">F</option>
+            <option value="6">F#</option>
+            <option value="7">G</option>
+            <option value="8">G#</option>
+            <option value="9">A</option>
+            <option value="10">A#</option>
+            <option value="11">B</option>
+        </select>
+        
+        <select id="scaleSelect">
+            <option value="major">Major (メジャー)</option>
+            <option value="minor">Minor (マイナー)</option>
+        </select>
+        
+        <button onclick="generateMusic()">生成する</button>
+    </div>
+
+    <div class="output-section">
+        <div class="output-title">コード進行 (4小節)</div>
+        <div id="chordOutput" class="output-content">-</div>
+        
+        <div class="output-title">メロディー (スケール内のランダム音)</div>
+        <div id="melodyOutput" class="output-content">-</div>
+    </div>
+</div>
+
+<script>
+    // 12音階の定義
+    const ALL_NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    
+    // スケールの音程間隔（半音単位）
+    const MAJOR_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
+    const MINOR_INTERVALS = [0, 2, 3, 5, 7, 8, 10];
+
+    // ダイアトニックコードのサフィックス（種類）
+    const MAJOR_CHORD_SUFFIX = ["", "m", "m", "", "", "m", "dim"];
+    const MINOR_CHORD_SUFFIX = ["m", "dim", "", "m", "m", "", ""];
+
+    // よくある王道のコード進行パターン（度数：0がI、1がII...）
+    const MAJOR_PROGRESSIONS = [
+        [0, 4, 5, 3], // I - V - vi - IV (王道進行など)
+        [0, 3, 4, 0], // I - IV - V - I
+        [5, 3, 0, 4], // vi - IV - I - V (小室進行風)
+        [3, 4, 2, 5]  // IV - V - iii - vi (王道進行派生)
+    ];
+
+    const MINOR_PROGRESSIONS = [
+        [0, 5, 2, 6], // i - VI - III - VII
+        [0, 3, 4, 0], // i - iv - v - i
+        [5, 6, 0, 0]  // VI - VII - i - i
+    ];
+
+    function generateMusic() {
+        const rootIndex = parseInt(document.getElementById('keySelect').value);
+        const scaleType = document.getElementById('scaleSelect').value;
+        
+        const intervals = scaleType === 'major' ? MAJOR_INTERVALS : MINOR_INTERVALS;
+        const suffixes = scaleType === 'major' ? MAJOR_CHORD_SUFFIX : MINOR_CHORD_SUFFIX;
+        const progressions = scaleType === 'major' ? MAJOR_PROGRESSIONS : MINOR_PROGRESSIONS;
+
+        // 1. スケール内の音（構成音）を取得
+        const scaleNotes = intervals.map(interval => ALL_NOTES[(rootIndex + interval) % 12]);
+
+        // 2. コード進行の生成
+        const randomProgression = progressions[Math.floor(Math.random() * progressions.length)];
+        const generatedChords = randomProgression.map(degree => {
+            return scaleNotes[degree] + suffixes[degree];
+        });
+
+        // 3. メロディーの生成（スケール内の音からランダムに8音選ぶ簡易的なもの）
+        let generatedMelody = [];
+        for (let i = 0; i < 8; i++) {
+            const randomNoteIndex = Math.floor(Math.random() * scaleNotes.length);
+            generatedMelody.push(scaleNotes[randomNoteIndex]);
+        }
+
+        // 画面に出力
+        document.getElementById('chordOutput').innerText = generatedChords.join(" | ");
+        document.getElementById('melodyOutput').innerText = generatedMelody.join("  ");
+    }
+</script>
+
+</body>
+</html>
