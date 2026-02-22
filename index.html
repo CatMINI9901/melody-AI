@@ -2,171 +2,296 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>自動作曲ジェネレーター</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PentaGroove - AI Music Generator</title>
     <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --accent-primary: #38bdf8;
+            --accent-secondary: #818cf8;
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
+            background: radial-gradient(circle at top right, #1e1b4b, var(--bg-color));
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
-        .container {
-            background: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            width: 100%;
+
+        .app-container {
+            width: 90%;
             max-width: 500px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             text-align: center;
         }
+
         h1 {
-            font-size: 24px;
-            margin-bottom: 20px;
-            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 800;
+            margin-top: 0;
+            background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
         }
-        .controls {
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        select {
+            appearance: none;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        select:focus {
+            border-color: var(--accent-primary);
+            outline: none;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        button {
+            padding: 16px;
+            border-radius: 14px;
+            border: none;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.2s;
             display: flex;
             justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
+            align-items: center;
+            gap: 8px;
         }
-        select, button {
-            padding: 10px 15px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+
+        button:active { transform: scale(0.97); }
+
+        #genBtn {
+            background: var(--text-main);
+            color: var(--bg-color);
         }
-        button {
-            background-color: #3498db;
+
+        #playBtn {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
             color: white;
-            border: none;
-            cursor: pointer;
-            transition: background 0.3s;
         }
-        button:hover {
-            background-color: #2980b9;
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
         }
-        .output-section {
-            margin-top: 25px;
-            padding: 15px;
-            background: #ecf0f1;
-            border-radius: 8px;
+
+        .display-area {
+            margin-top: 32px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            padding: 20px;
             text-align: left;
         }
-        .output-title {
-            font-size: 14px;
-            color: #7f8c8d;
-            margin-bottom: 5px;
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-primary);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
         }
-        .output-content {
-            font-size: 20px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 15px;
-            letter-spacing: 2px;
+
+        .output-text {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 18px;
+            margin-bottom: 20px;
+            word-break: break-all;
+            color: var(--text-main);
+        }
+
+        /* 視覚的な動き（ビジュアライザー） */
+        .visualizer {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            height: 20px;
+            margin-bottom: 20px;
+        }
+        .bar {
+            width: 4px;
+            height: 100%;
+            background: var(--accent-primary);
+            border-radius: 2px;
+            transition: height 0.2s;
+        }
+
+        /* スマホ対応の調整 */
+        @media (max-width: 400px) {
+            .app-container { padding: 20px; }
+            h1 { font-size: 22px; }
+            .output-text { font-size: 16px; }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>自動作曲ジェネレーター</h1>
+<div class="app-container">
+    <h1>PentaGroove</h1>
     
-    <div class="controls">
-        <select id="keySelect">
-            <option value="0">C</option>
-            <option value="1">C#</option>
-            <option value="2">D</option>
-            <option value="3">D#</option>
-            <option value="4">E</option>
-            <option value="5">F</option>
-            <option value="6">F#</option>
-            <option value="7">G</option>
-            <option value="8">G#</option>
-            <option value="9">A</option>
-            <option value="10">A#</option>
-            <option value="11">B</option>
-        </select>
-        
-        <select id="scaleSelect">
-            <option value="major">Major (メジャー)</option>
-            <option value="minor">Minor (マイナー)</option>
-        </select>
-        
-        <button onclick="generateMusic()">生成する</button>
+    <div class="visualizer" id="visualizer">
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
     </div>
 
-    <div class="output-section">
-        <div class="output-title">コード進行 (4小節)</div>
-        <div id="chordOutput" class="output-content">-</div>
-        
-        <div class="output-title">メロディー (スケール内のランダム音)</div>
-        <div id="melodyOutput" class="output-content">-</div>
+    <div class="controls-grid">
+        <select id="keySelect">
+            <option value="0">Key: C</option><option value="2">Key: D</option>
+            <option value="4">Key: E</option><option value="5">Key: F</option>
+            <option value="7">Key: G</option><option value="9">Key: A</option>
+        </select>
+        <select id="scaleSelect">
+            <option value="major">✨ Major Penta</option>
+            <option value="minor">🌙 Minor Penta</option>
+        </select>
+    </div>
+
+    <div class="button-group">
+        <button id="genBtn" onclick="generate()">曲を作る</button>
+        <button id="playBtn" onclick="play()" disabled>▶ 再生する</button>
+    </div>
+
+    <div class="display-area">
+        <div class="section-label">Chords</div>
+        <div id="chordOut" class="output-text">-</div>
+        <div class="section-label">Melody</div>
+        <div id="melodyOut" class="output-text">-</div>
     </div>
 </div>
 
 <script>
-    // 12音階の定義
-    const ALL_NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    
-    // スケールの音程間隔（半音単位）
-    const MAJOR_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
-    const MINOR_INTERVALS = [0, 2, 3, 5, 7, 8, 10];
-
-    // ダイアトニックコードのサフィックス（種類）
-    const MAJOR_CHORD_SUFFIX = ["", "m", "m", "", "", "m", "dim"];
-    const MINOR_CHORD_SUFFIX = ["m", "dim", "", "m", "m", "", ""];
-
-    // よくある王道のコード進行パターン（度数：0がI、1がII...）
-    const MAJOR_PROGRESSIONS = [
-        [0, 4, 5, 3], // I - V - vi - IV (王道進行など)
-        [0, 3, 4, 0], // I - IV - V - I
-        [5, 3, 0, 4], // vi - IV - I - V (小室進行風)
-        [3, 4, 2, 5]  // IV - V - iii - vi (王道進行派生)
+    const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const DIATONIC = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
+    const PENTATONIC = { major: [0, 2, 4, 7, 9], minor: [0, 3, 5, 7, 10] };
+    const CHORD_MAP = { "": [0, 4, 7], "m": [0, 3, 7], "dim": [0, 3, 6] };
+    const SUFFIXES = { major: ["", "m", "m", "", "", "m", "dim"], minor: ["m", "dim", "", "m", "m", "", ""] };
+    const RHYTHM_PATTERNS = [
+        [0.375, 0.125, 0.25, 0.25],
+        [0.25, 0.25, 0.125, 0.125, 0.25],
+        [0.125, 0.125, 0.5, 0.25],
+        [0.5, 0.125, 0.125, 0.25]
     ];
 
-    const MINOR_PROGRESSIONS = [
-        [0, 5, 2, 6], // i - VI - III - VII
-        [0, 3, 4, 0], // i - iv - v - i
-        [5, 6, 0, 0]  // VI - VII - i - i
-    ];
+    let sequence = { chords: [], melody: [] };
+    let audioCtx = null;
 
-    function generateMusic() {
-        const rootIndex = parseInt(document.getElementById('keySelect').value);
-        const scaleType = document.getElementById('scaleSelect').value;
+    function generate() {
+        const root = parseInt(document.getElementById('keySelect').value);
+        const mode = document.getElementById('scaleSelect').value;
+        const fullScale = DIATONIC[mode].map(i => (root + i) % 12);
+        const pentaScale = PENTATONIC[mode].map(i => (root + i) % 12);
         
-        const intervals = scaleType === 'major' ? MAJOR_INTERVALS : MINOR_INTERVALS;
-        const suffixes = scaleType === 'major' ? MAJOR_CHORD_SUFFIX : MINOR_CHORD_SUFFIX;
-        const progressions = scaleType === 'major' ? MAJOR_PROGRESSIONS : MINOR_PROGRESSIONS;
+        sequence = { chords: [], melody: [] };
+        const prog = [3, 4, 2, 5]; // 4-5-3-6 進行
+        let currentPentaIdx = 2;
 
-        // 1. スケール内の音（構成音）を取得
-        const scaleNotes = intervals.map(interval => ALL_NOTES[(rootIndex + interval) % 12]);
+        prog.forEach((degree) => {
+            const chordRoot = fullScale[degree];
+            const suffix = SUFFIXES[mode][degree];
+            sequence.chords.push({ root: chordRoot, suffix, tones: CHORD_MAP[suffix].map(t => (chordRoot + t) % 12) });
 
-        // 2. コード進行の生成
-        const randomProgression = progressions[Math.floor(Math.random() * progressions.length)];
-        const generatedChords = randomProgression.map(degree => {
-            return scaleNotes[degree] + suffixes[degree];
+            const pattern = RHYTHM_PATTERNS[Math.floor(Math.random() * RHYTHM_PATTERNS.length)];
+            pattern.forEach(dur => {
+                const move = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
+                currentPentaIdx = Math.max(0, Math.min(pentaScale.length - 1, currentPentaIdx + move));
+                sequence.melody.push({ note: pentaScale[currentPentaIdx] + 12, duration: dur * 4 });
+            });
         });
 
-        // 3. メロディーの生成（スケール内の音からランダムに8音選ぶ簡易的なもの）
-        let generatedMelody = [];
-        for (let i = 0; i < 8; i++) {
-            const randomNoteIndex = Math.floor(Math.random() * scaleNotes.length);
-            generatedMelody.push(scaleNotes[randomNoteIndex]);
-        }
+        document.getElementById('chordOut').innerText = sequence.chords.map(c => NOTES[c.root] + c.suffix).join("  ");
+        document.getElementById('melodyOut').innerText = sequence.melody.map(m => NOTES[m.note % 12]).join(" ");
+        document.getElementById('playBtn').disabled = false;
+        
+        // 生成時にビジュアルを動かす
+        animateBars();
+    }
 
-        // 画面に出力
-        document.getElementById('chordOutput').innerText = generatedChords.join(" | ");
-        document.getElementById('melodyOutput').innerText = generatedMelody.join("  ");
+    function animateBars() {
+        const bars = document.querySelectorAll('.bar');
+        bars.forEach(bar => {
+            bar.style.height = Math.random() * 100 + "%";
+        });
+    }
+
+    function playTone(freq, start, dur, type, vol, isStaccato = false) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        
+        const playDuration = isStaccato ? dur * 0.8 : dur;
+
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(vol, start + 0.01);
+        gain.gain.setValueAtTime(vol, start + playDuration - 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + playDuration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + dur);
+    }
+
+    function play() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const now = audioCtx.currentTime;
+        const beat = 0.45; // 少し速めの133BPM程度
+
+        sequence.chords.forEach((c, i) => {
+            const start = now + (i * beat * 4);
+            c.tones.forEach(t => playTone(440 * Math.pow(2, (t - 21) / 12), start, beat * 4, 'triangle', 0.06));
+        });
+
+        let melodyTime = 0;
+        sequence.melody.forEach((m) => {
+            const start = now + (melodyTime * beat);
+            playTone(440 * Math.pow(2, (m.note - 9) / 12), start, m.duration * beat, 'sine', 0.15, true);
+            
+            // 再生に合わせてビジュアルを動かす
+            setTimeout(() => animateBars(), melodyTime * beat * 1000);
+            melodyTime += m.duration;
+        });
     }
 </script>
-
 </body>
 </html>
